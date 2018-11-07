@@ -1,0 +1,84 @@
+﻿Using System
+Using System.Text
+Using System.Collections.Generic 
+Using System.Web
+Using System.IO 
+Using System.Net 
+
+BegClass Program
+    BegSr Main Shared(*Yes) Access(*Public) Attributes(System.STAThread())
+        DclSrParm args Type(*String) Rank(1)
+
+        DclFld tc Type(TestClasses) New() 
+
+        tc.Run(args[0]) 
+
+        Console.WriteLine('Press any key to continue...') 
+        Console.ReadKey()
+    EndSr
+EndClass
+
+BegClass TestClasses
+
+    BegSr Run Access(*Public) 
+        DclSrParm Url Type(String) 
+        DclFld ResponseString Type(*String) 
+        
+        DclFld CustomerList Type(List(*Of CustomerEntity))
+        DclArray CustomerArray Type(CustomerEntity) Rank(1) 
+
+        ResponseString = SubmitGetRequest(Url) 
+        CustomerList = NewtonSoft.Json.JsonConvert.DeserializeObject(ResponseString, *TypeOf(List(*Of CustomerEntity))) *As List(*Of CustomerEntity)
+
+        // It's not used here, but an array is generally a better object to pass around that a List<T>. This is 
+        // what it takes to convert the List<CustomerEntity> to an array of CustomerEntities. 
+        CustomerArray = CustomerList.ToArray()      
+
+        Console.Clear()
+        Console.WriteLine('Read {0} customers from the Web API', CustomerList.Count) 
+        Console.WriteLine("Press any key to show each customer name...") 
+        Console.ReadKey()
+
+        ForEach ce Type(CustomerEntity) Collection(CustomerList) 
+            Console.WriteLine(ce.CMName) 
+        EndFor
+                
+    EndSr
+
+    BegFunc SubmitGetRequest Type(*String) 
+        DclSrParm Url      Type(*String) 
+        
+        DclFld encoding        Type(ASCIIEncoding) New()
+        DclFld myRequest       Type(HttpWebRequest) 
+        DclFld myResponse      Type(HttpWebResponse) 
+        DclFld requestStream   Type(Stream) 
+        DclFld responseStream  Type(Stream) 
+        DclFld responseString  Type(*String) 
+        DclFld sr              Type(StreamReader) 
+       
+        myRequest = WebRequest.Create(Url) *As HttpWebRequest         
+        myRequest.Method = "GET"
+
+        Try 
+            // Send the request to the server.
+            requestStream = myRequest.GetRequestStream()
+            requestStream.Close()
+        Catch error Type(System.Exception)
+            // Handle exception error here.
+        EndTry
+        
+        // Fetch response from server as a string.
+        myResponse = myRequest.GetResponse() *As HttpWebResponse
+        If (myResponse.StatusCode = HttpStatusCode.OK)
+            responseStream = myResponse.GetResponseStream()
+            sr = *New StreamReader(responseStream) 
+            responseString = sr.ReadToEnd() 
+            sr.Close()
+        Else 
+            // Handle HttpStatusCode not OK here.            
+        EndIf
+        
+        LeaveSr responseString 
+    EndFunc                 
+
+EndClass
